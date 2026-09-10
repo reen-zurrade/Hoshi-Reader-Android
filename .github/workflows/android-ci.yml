@@ -76,6 +76,18 @@ jobs:
       - name: Restore Gradle cache
         uses: gradle/actions/setup-gradle@v4
 
-      - name: Test, lint, and assemble debug APK
+      - name: Assemble debug APK
         shell: bash
-        run: ./gradlew --no-daemon test lint assembleDebug
+        run: ./gradlew --no-daemon assembleDebug
+
+      - name: Upload debug APK
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hoshi-debug-apk
+          path: app/build/outputs/apk/debug/*.apk
+          if-no-files-found: warn
+
+      - name: Test and lint
+        shell: bash
+        run: ./gradlew --no-daemon test lint
