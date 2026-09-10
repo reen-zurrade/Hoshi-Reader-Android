@@ -2318,6 +2318,7 @@ private fun SettingsGlyph(destination: SettingsDestination, color: Color, modifi
     val icon = when (destination) {
         SettingsDestination.Dictionaries -> Icons.AutoMirrored.Rounded.MenuBook
         SettingsDestination.Anki -> Icons.Rounded.Inventory2
+        SettingsDestination.AiGrammar -> Icons.Rounded.AutoAwesome
         SettingsDestination.Profiles -> Icons.Rounded.Person
         SettingsDestination.Appearance -> Icons.Rounded.Palette
         SettingsDestination.Behavior -> Icons.Rounded.Keyboard

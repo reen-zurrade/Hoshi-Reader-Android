@@ -129,6 +129,7 @@
     </plurals>
     <string name="settings_dictionaries" comment="Settings row label, intentionally matching the backup Dictionaries section.">辞典</string>
     <string name="settings_anki">Anki</string>
+    <string name="settings_ai_grammar">AI 文法解析</string>
     <string name="settings_profiles" comment="Settings row label, intentionally matching the Profiles screen title.">Profile</string>
     <string name="settings_appearance">外观</string>
     <string name="settings_behavior">行为</string>
@@ -778,4 +779,30 @@
     <string name="book_cover_scale_fill_summary">保持原始比例填满屏幕，并裁切超出的部分。</string>
     <string name="book_cover_scale_stretch">拉伸</string>
     <string name="book_cover_scale_stretch_summary">不保持封面原始比例，直接填满屏幕。</string>
+    <string name="ai_grammar_enable">在查词弹窗中显示解析按钮</string>
+    <string name="ai_grammar_status_ready">已就绪：点查词弹窗里的星形按钮即可解析整句。</string>
+    <string name="ai_grammar_status_missing_key">填入 DeepSeek API 密钥后即可开始解析句子。</string>
+    <string name="ai_grammar_api_key">API 密钥</string>
+    <string name="ai_grammar_base_url">接口地址</string>
+    <string name="ai_grammar_model">模型</string>
+    <string name="ai_grammar_max_tokens">最大输出 token</string>
+    <string name="ai_grammar_timeout">超时（秒）</string>
+    <string name="ai_grammar_system_prompt">系统提示词</string>
+    <string name="ai_grammar_thinking">思考模式</string>
+    <string name="ai_grammar_reset_prompt">恢复默认系统提示词</string>
+    <string name="ai_grammar_privacy_hint">被解析的句子会连同系统提示词一起发送到你配置的接口。解析结果在本次运行期间缓存在本机。</string>
+    <string name="ai_grammar_action">AI 文法解析</string>
+    <string name="ai_grammar_pending">解析中…</string>
+    <string name="ai_grammar_refresh">重新解析</string>
+    <string name="ai_grammar_error_generic">文法解析失败。</string>
+    <string name="ai_grammar_error_not_configured">请先在「设置 → AI 文法解析」中填入 DeepSeek API 密钥。</string>
+    <string name="ai_grammar_error_no_sentence">没有可用于解析的句子。</string>
+    <string name="ai_grammar_error_network">无法连接 AI 接口，请检查接口地址与网络。</string>
+    <string name="ai_grammar_error_timeout">AI 请求超时，可重试或调大超时时间。</string>
+    <string name="ai_grammar_error_auth">API 密钥被拒绝，请在 AI 文法解析设置中检查。</string>
+    <string name="ai_grammar_error_rate_limited">AI 接口限流，请稍后重试。</string>
+    <string name="ai_grammar_error_quota">AI 账户额度或余额不足。</string>
+    <string name="ai_grammar_error_invalid_request">接口拒绝了该请求，请检查模型名与接口地址。</string>
+    <string name="ai_grammar_error_server">AI 接口服务端错误，请稍后重试。</string>
+    <string name="ai_grammar_error_empty">AI 接口返回了空结果。</string>
 </resources>

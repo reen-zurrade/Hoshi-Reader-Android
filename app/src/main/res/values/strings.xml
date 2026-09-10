@@ -129,6 +129,7 @@
     </plurals>
     <string name="settings_dictionaries" comment="Settings row label, intentionally matching the backup Dictionaries section.">Dictionaries</string>
     <string name="settings_anki">Anki</string>
+    <string name="settings_ai_grammar">AI grammar analysis</string>
     <string name="settings_profiles" comment="Settings row label, intentionally matching the Profiles screen title.">Profiles</string>
     <string name="settings_appearance">Appearance</string>
     <string name="settings_behavior">Behavior</string>
@@ -780,4 +781,30 @@
     <string name="book_cover_scale_fill_summary">Fill the screen while preserving proportions, cropping overflow.</string>
     <string name="book_cover_scale_stretch">Stretch</string>
     <string name="book_cover_scale_stretch_summary">Fill the screen without preserving the cover’s proportions.</string>
+    <string name="ai_grammar_enable">Show analysis action in lookup popup</string>
+    <string name="ai_grammar_status_ready">Ready. Tap the star in a lookup popup to analyze the whole sentence.</string>
+    <string name="ai_grammar_status_missing_key">Add a DeepSeek API key to start analyzing sentences.</string>
+    <string name="ai_grammar_api_key">API key</string>
+    <string name="ai_grammar_base_url">Endpoint</string>
+    <string name="ai_grammar_model">Model</string>
+    <string name="ai_grammar_max_tokens">Max output tokens</string>
+    <string name="ai_grammar_timeout">Timeout (seconds)</string>
+    <string name="ai_grammar_system_prompt">System prompt</string>
+    <string name="ai_grammar_thinking">Thinking mode</string>
+    <string name="ai_grammar_reset_prompt">Reset system prompt</string>
+    <string name="ai_grammar_privacy_hint">The analyzed sentence and your system prompt are sent to the configured endpoint. Results are cached on this device until the app is restarted.</string>
+    <string name="ai_grammar_action">AI grammar analysis</string>
+    <string name="ai_grammar_pending">Analyzing…</string>
+    <string name="ai_grammar_refresh">Analyze again</string>
+    <string name="ai_grammar_error_generic">Grammar analysis failed.</string>
+    <string name="ai_grammar_error_not_configured">Add a DeepSeek API key under Settings → AI grammar analysis.</string>
+    <string name="ai_grammar_error_no_sentence">No sentence was available to analyze.</string>
+    <string name="ai_grammar_error_network">Could not reach the AI endpoint. Check the endpoint and your connection.</string>
+    <string name="ai_grammar_error_timeout">The AI request timed out. Try again, or raise the timeout.</string>
+    <string name="ai_grammar_error_auth">The API key was rejected. Check the key in the AI grammar analysis settings.</string>
+    <string name="ai_grammar_error_rate_limited">The AI endpoint rate limited this request. Try again shortly.</string>
+    <string name="ai_grammar_error_quota">The AI account has no remaining quota or balance.</string>
+    <string name="ai_grammar_error_invalid_request">The endpoint rejected the request. Check the model name and endpoint.</string>
+    <string name="ai_grammar_error_server">The AI endpoint reported a server error. Try again later.</string>
+    <string name="ai_grammar_error_empty">The AI endpoint returned an empty answer.</string>
 </resources>

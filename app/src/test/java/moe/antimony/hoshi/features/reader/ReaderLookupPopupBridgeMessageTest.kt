@@ -123,6 +123,26 @@ class ReaderLookupPopupBridgeMessageTest {
             ),
         )
         assertEquals(
+            ReaderLookupPopupBridgeMessage.AiGrammar(
+                popupId = "root",
+                messageId = "7",
+                refresh = true,
+            ),
+            ReaderLookupPopupBridgeMessage.fromJson(
+                """{"name":"aiGrammar","popupId":"root","id":"7","body":{"refresh":true}}""",
+            ),
+        )
+
+        assertEquals(
+            ReaderLookupPopupBridgeMessage.AiGrammar(
+                popupId = "root",
+                messageId = "8",
+                refresh = false,
+            ),
+            ReaderLookupPopupBridgeMessage.fromJson("""{"name":"aiGrammar","popupId":"root","id":"8"}"""),
+        )
+
+        assertEquals(
             ReaderLookupPopupBridgeMessage.MineEntry(
                 popupId = "child",
                 messageId = "45",
@@ -164,5 +184,6 @@ class ReaderLookupPopupBridgeMessageTest {
         assertNull(ReaderLookupPopupBridgeMessage.fromJson("""{"name":"openLink","body":"https://example.com"}"""))
         assertNull(ReaderLookupPopupBridgeMessage.fromJson("""{"name":"textSelected","popupId":"root","body":{}}"""))
         assertNull(ReaderLookupPopupBridgeMessage.fromJson("""{"name":"getEntry","id":"1","popupId":"root","body":-1}"""))
+        assertNull(ReaderLookupPopupBridgeMessage.fromJson("""{"name":"aiGrammar","popupId":"root"}"""))
     }
 }

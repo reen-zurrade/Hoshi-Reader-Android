@@ -1695,7 +1695,13 @@ function createButtonSlot(kind, entryIndex, enabled = true, formatId = null, for
         'data-format-icon': formatIcon
     });
     slot.type = 'button';
-    slot.setAttribute('aria-label', kind === 'audio' ? 'Play audio' : kind === 'notes' ? 'Show Anki notes' : 'Add to Anki');
+    slot.setAttribute('aria-label', kind === 'audio'
+        ? 'Play audio'
+        : kind === 'notes'
+            ? 'Show Anki notes'
+            : kind === 'ai'
+                ? (window.aiGrammarLabel || 'AI grammar analysis')
+                : 'Add to Anki');
     slot.addEventListener('click', (event) => {
         event.preventDefault();
         event.stopPropagation();
@@ -1710,6 +1716,8 @@ function createButtonSlot(kind, entryIndex, enabled = true, formatId = null, for
             mineEntryAtIndex(entryIndex, formatId, buttonsContainer);
         } else if (kind === 'notes') {
             showNotesAtIndex(entryIndex, formatId);
+        } else if (kind === 'ai') {
+            analyzeGrammarAtIndex(entryIndex);
         }
     });
     slot.appendChild(el('span', { className: 'button-slot-icon' }));
@@ -1741,7 +1749,9 @@ function applyButtonSlotVisualState(slot) {
     const state = slot.dataset.state || 'default';
     const enabled = slot.dataset.enabled !== 'false';
     const formatIcon = (slot.dataset.formatIcon || 'square').replace('-small', '');
-    const iconName = kind === 'audio'
+    const iconName = kind === 'ai'
+        ? (state === 'error' ? 'close' : 'auto_awesome')
+        : kind === 'audio'
         ? (state === 'error' ? 'volume_off' : 'volume_up')
         : kind === 'notes' ? 'search'
         : formatIcon === 'circle' ? (state === 'duplicate' ? 'check_circle' : 'add_circle')
@@ -1816,6 +1826,100 @@ async function showNotesAtIndex(entryIndex, formatId) {
         formatId,
         values: duplicateValuesForEntry(entry)
     });
+}
+
+const AI_GRAMMAR_REQUEST_TIMEOUT_MS = 90000;
+
+function aiGrammarEntryContainer(entryIndex) {
+    return document.querySelector(`.entry[data-entry-index="${entryIndex}"]`);
+}
+
+function ensureAiGrammarBlock(entryIndex) {
+    const container = aiGrammarEntryContainer(entryIndex);
+    if (!container) return null;
+    let block = container.querySelector(':scope > .ai-grammar');
+    if (!block) {
+        block = el('div', { className: 'ai-grammar', 'data-state': 'idle' });
+        block.appendChild(el('div', { className: 'ai-grammar-text' }));
+        const refresh = el('button', { className: 'ai-grammar-refresh', type: 'button' });
+        refresh.hidden = true;
+        refresh.addEventListener('click', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            refreshGrammarAtIndex(entryIndex);
+        });
+        block.appendChild(refresh);
+        container.appendChild(block);
+    }
+    return block;
+}
+
+function aiGrammarChild(block, className) {
+    return block?.children?.find((child) => child.className === className) ?? null;
+}
+
+function setAiGrammarBlockState(block, state, text) {
+    if (!block) return;
+    const value = typeof text === 'string' ? text : '';
+    block.dataset.state = state;
+    block.hidden = !value;
+    // The model answer is only ever inserted as text; it is never parsed as markup.
+    const textElement = aiGrammarChild(block, 'ai-grammar-text');
+    if (textElement) {
+        textElement.textContent = value;
+    }
+    const refreshButton = aiGrammarChild(block, 'ai-grammar-refresh');
+    if (refreshButton) {
+        refreshButton.hidden = state !== 'ready';
+        refreshButton.textContent = state === 'ready' ? (window.aiGrammarRefreshLabel || 'Refresh') : '';
+    }
+}
+
+async function analyzeGrammarAtIndex(entryIndex) {
+    const entry = window.lookupEntries?.[entryIndex];
+    if (!entry || !webkit.messageHandlers?.aiGrammar) return;
+    const block = aiGrammarEntryContainer(entryIndex)?.querySelector(':scope > .ai-grammar') ?? null;
+    if (block?.dataset.state === 'ready' && block.dataset.loaded === 'true') {
+        // An answer is already on screen: reveal it instead of paying for another request.
+        block.scrollIntoView?.({ block: 'nearest' });
+        return;
+    }
+    await requestAiGrammar(entryIndex, false);
+}
+
+async function refreshGrammarAtIndex(entryIndex) {
+    await requestAiGrammar(entryIndex, true);
+}
+
+async function requestAiGrammar(entryIndex, refresh) {
+    const slot = getButtonSlot('ai', entryIndex);
+    if (slot?.dataset.state === 'pending') return;
+
+    const block = ensureAiGrammarBlock(entryIndex);
+    updateButtonSlot(slot, { state: 'pending', enabled: false });
+    setAiGrammarBlockState(block, 'pending', window.aiGrammarPendingLabel || '…');
+
+    let reply = null;
+    try {
+        reply = await Promise.race([
+            webkit.messageHandlers.aiGrammar.postMessage({ refresh }),
+            new Promise((resolve) => setTimeout(() => resolve(null), AI_GRAMMAR_REQUEST_TIMEOUT_MS)),
+        ]);
+    } catch (e) {
+        reply = null;
+    }
+
+    updateButtonSlot(slot, { state: 'default', enabled: true });
+    if (reply && reply.ok && typeof reply.text === 'string' && reply.text) {
+        block?.setAttribute('data-loaded', 'true');
+        setAiGrammarBlockState(block, 'ready', reply.text);
+        block?.scrollIntoView?.({ block: 'nearest' });
+        return;
+    }
+    const message = reply && typeof reply.message === 'string' && reply.message
+        ? reply.message
+        : (window.aiGrammarErrorLabel || 'AI request failed');
+    setAiGrammarBlockState(block, 'error', message);
 }
 
 function appendAnkiFormatButtons(container, entryIndex) {
@@ -1934,6 +2038,10 @@ function createEntryHeader(entry, idx) {
 
     if (window.audioSources?.length) {
         buttonsContainer.appendChild(createButtonSlot('audio', idx));
+    }
+
+    if (window.aiGrammarEnabled) {
+        buttonsContainer.appendChild(createButtonSlot('ai', idx));
     }
 
     header.appendChild(buttonsContainer);

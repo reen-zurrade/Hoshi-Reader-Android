@@ -12,6 +12,7 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import kotlinx.serialization.json.putJsonArray
 import moe.antimony.hoshi.content.ContentLanguageProfile
+import moe.antimony.hoshi.features.ai.AiGrammarPopupLabels
 import moe.antimony.hoshi.features.audio.AudioSettings
 import moe.antimony.hoshi.features.anki.AnkiPopupSettings
 import moe.antimony.hoshi.features.anki.AnkiFormatIcon
@@ -75,6 +76,7 @@ internal object LookupPopupHtml {
         eInkMode: Boolean = false,
         audioSettings: AudioSettings = AudioSettings(),
         ankiSettings: AnkiPopupSettings = AnkiPopupSettings(),
+        aiGrammar: AiGrammarPopupLabels = AiGrammarPopupLabels(),
         fontFaceCss: String = "",
         popupScale: Double = 1.0,
         contentLanguageProfile: ContentLanguageProfile = ContentLanguageProfile.Default,
@@ -186,6 +188,7 @@ internal object LookupPopupHtml {
                             contentReady: { postMessage: function() { window.HoshiAndroidPopup.postMessage('contentReady'); } },
                             popupScrolled: { postMessage: function() { window.HoshiAndroidPopup.postMessage('popupScrolled'); } },
                             mineEntry: { postMessage: function(content) { return window.HoshiAndroidPopup.requestMessage('mineEntry', content); } },
+                            aiGrammar: { postMessage: function(content) { return window.HoshiAndroidPopup.requestMessage('aiGrammar', content); } },
                             duplicateCheck: { postMessage: function(values) { return window.HoshiAndroidPopup.requestMessage('duplicateCheck', values); } },
                             showNotes: { postMessage: function(content) { return window.HoshiAndroidPopup.requestMessage('showNotes', content); } },
                             getEntry: { postMessage: function(index) { return window.HoshiAndroidPopup.requestMessage('getEntry', index); } },
@@ -218,6 +221,12 @@ internal object LookupPopupHtml {
                     window.ankiFormats = ${ankiFormatsJson(ankiSettings)};
                     window.ankiBackendAvailable = ${ankiSettings.isBackendAvailable};
                     window.disableShowNotes = ${ankiSettings.disableShowNotes};
+                    window.aiGrammarEnabled = ${aiGrammar.isEnabled};
+                    window.aiGrammarAvailable = ${aiGrammar.isConfigured};
+                    window.aiGrammarLabel = ${JsonPrimitive(aiGrammar.actionLabel)};
+                    window.aiGrammarPendingLabel = ${JsonPrimitive(aiGrammar.pendingLabel)};
+                    window.aiGrammarErrorLabel = ${JsonPrimitive(aiGrammar.errorLabel)};
+                    window.aiGrammarRefreshLabel = ${JsonPrimitive(aiGrammar.refreshLabel)};
                     window.customCSS = ${JsonPrimitive(normalizedSettings.customCSS)};
                     window.swipeThreshold = $effectiveSwipeThreshold;
                     window.reducedMotionScrolling = $reducedMotionScrolling;

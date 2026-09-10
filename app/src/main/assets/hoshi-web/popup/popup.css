@@ -179,6 +179,52 @@ button.button-slot:disabled {
     transform: scale(0.76);
 }
 
+.button-slot[data-kind="ai"][data-state="pending"] .button-slot-icon {
+    opacity: 0.4;
+}
+
+.ai-grammar {
+    margin-top: 8px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background-color: rgba(128, 128, 128, 0.12);
+    color: var(--text-color);
+    font-size: 0.95em;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-word;
+    -webkit-user-select: text;
+    user-select: text;
+}
+
+.ai-grammar[data-state="pending"] {
+    font-style: italic;
+    color: var(--text-color-light2);
+}
+
+.ai-grammar[data-state="error"] {
+    background-color: rgba(192, 57, 43, 0.12);
+}
+
+.ai-grammar-text {
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+button.ai-grammar-refresh {
+    display: block;
+    margin-top: 8px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--text-color-light2);
+    font: inherit;
+    font-size: 0.9em;
+    text-decoration: underline;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+}
+
 .entry-tags {
     margin-top: -4px;
     -webkit-user-select: none;

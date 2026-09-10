@@ -15,6 +15,8 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import moe.antimony.hoshi.BuildConfig
+import moe.antimony.hoshi.features.ai.AiGrammarSettingsRepository
+import moe.antimony.hoshi.features.ai.aiGrammarSettingsRepository
 import moe.antimony.hoshi.features.anki.AnkiSettingsRepository
 import moe.antimony.hoshi.features.anki.ankiSettingsRepository
 import moe.antimony.hoshi.features.audio.AudioSettingsRepository
@@ -123,6 +125,11 @@ internal object HoshiAppModule {
         @IoDispatcher ioDispatcher: CoroutineDispatcher,
     ): AnkiSettingsRepository =
         context.ankiSettingsRepository(profileRepository, ioDispatcher)
+
+    @Provides
+    @Singleton
+    fun provideAiGrammarSettingsRepository(@ApplicationContext context: Context): AiGrammarSettingsRepository =
+        context.aiGrammarSettingsRepository()
 
     @Provides
     @Singleton

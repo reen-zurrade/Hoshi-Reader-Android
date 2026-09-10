@@ -39,6 +39,12 @@ import moe.antimony.hoshi.ProcessTextLookupRequest
 import moe.antimony.hoshi.MainActivity
 import moe.antimony.hoshi.content.ContentLanguageProfile
 import moe.antimony.hoshi.dictionary.DictionaryRepository
+import moe.antimony.hoshi.features.ai.AiGrammarOutcome
+import moe.antimony.hoshi.features.ai.AiGrammarPopupReply
+import moe.antimony.hoshi.features.ai.AiGrammarViewModel
+import moe.antimony.hoshi.features.ai.aiGrammarFailureMessage
+import moe.antimony.hoshi.features.ai.aiGrammarPopupLabels
+import moe.antimony.hoshi.features.ai.toJson
 import moe.antimony.hoshi.features.audio.AudioRequestHandler
 import moe.antimony.hoshi.features.audio.AudioSettings
 import moe.antimony.hoshi.features.audio.AudioSettingsRepository
@@ -158,12 +164,18 @@ private fun ProcessTextLookupOverlay(
     }
     val ankiViewModel: AnkiViewModel = hiltViewModel()
     val ankiUiState by ankiViewModel.uiState.collectAsStateWithLifecycle()
+    val aiGrammarViewModel: AiGrammarViewModel = hiltViewModel()
+    val aiGrammarUiState by aiGrammarViewModel.uiState.collectAsStateWithLifecycle()
     val assets = remember(context) { LookupPopupAssets.load(context) }
     val fontLibraryState by dependencies.readerFontManager.libraryState.collectAsStateWithLifecycle()
     val fontFaceCss = remember(dependencies.readerFontManager, fontLibraryState.revision) {
         dependencies.readerFontManager.popupFontFaceCss()
     }
     val popupSettings = popups.firstOrNull()?.state
+    val aiGrammarLabels = aiGrammarPopupLabels(
+        isEnabled = aiGrammarUiState.popupSettings.isEnabled,
+        isConfigured = aiGrammarUiState.popupSettings.isConfigured,
+    )
     val readerPopupIframeDocument = remember(
         popupSettings?.dictionaryStyles,
         popupSettings?.dictionarySettings,
@@ -177,6 +189,7 @@ private fun ProcessTextLookupOverlay(
         darkMode,
         readerSettings.eInkMode,
         ankiUiState.popupSettings,
+        aiGrammarLabels,
         fontFaceCss,
     ) {
         LookupPopupHtml.renderIframeDocument(
@@ -192,6 +205,7 @@ private fun ProcessTextLookupOverlay(
             eInkMode = readerSettings.eInkMode,
             audioSettings = popupSettings?.audioSettings ?: AudioSettings(),
             ankiSettings = ankiUiState.popupSettings,
+            aiGrammar = aiGrammarLabels,
             fontFaceCss = fontFaceCss,
             popupScale = readerSettings.popupScale,
             contentLanguageProfile = contentLanguageProfile,
@@ -376,6 +390,25 @@ private fun ProcessTextLookupOverlay(
                 }
                 is ReaderLookupPopupBridgeMessage.PlayWordAudio -> {
                     WordAudioPlayer.get(context).play(message.url, message.mode)
+                }
+                is ReaderLookupPopupBridgeMessage.AiGrammar -> {
+                    val popup = popupById(message.popupId) ?: return
+                    val messageId = message.messageId ?: return
+                    aiGrammarViewModel.analyzeAsync(
+                        sentence = popup.state.selection.sentence,
+                        word = popup.state.selection.text,
+                        bookTitle = popup.state.ankiContext.documentTitle,
+                        forceRefresh = message.refresh,
+                    ) { outcome ->
+                        val reply = when (outcome) {
+                            is AiGrammarOutcome.Success -> AiGrammarPopupReply(ok = true, text = outcome.text)
+                            is AiGrammarOutcome.Failure -> AiGrammarPopupReply(
+                                ok = false,
+                                message = aiGrammarFailureMessage(context, outcome.reason),
+                            )
+                        }
+                        replyIframeMessage(message.popupId, messageId, reply.toJson())
+                    }
                 }
                 is ReaderLookupPopupBridgeMessage.MineEntry -> {
                     val popup = popupById(message.popupId) ?: return

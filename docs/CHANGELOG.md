@@ -28,6 +28,10 @@ Historical release notes before v1.3.0 live in [CHANGELOG_ARCHIVE.md](CHANGELOG_
 - Add `hoshi://search?text=...` deep links for opening lookup results in the
   existing popup overlay, with `mode=app` support for opening the Dictionary
   tab instead.
+- Add optional DeepSeek-powered grammar analysis for the sentence a looked-up
+  word belongs to: a star action in the lookup popup returns a Chinese
+  breakdown of the sentence, and Settings gains an AI grammar analysis screen
+  for the API key, endpoint, model, system prompt, and caching/timeout options.
 
 ### Fixed
 

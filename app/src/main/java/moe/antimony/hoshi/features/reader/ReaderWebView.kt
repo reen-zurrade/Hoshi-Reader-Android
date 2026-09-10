@@ -58,6 +58,12 @@ import moe.antimony.hoshi.epub.ReaderHighlight
 import moe.antimony.hoshi.epub.SasayakiMatch
 import moe.antimony.hoshi.epub.SasayakiMatchData
 import moe.antimony.hoshi.epub.SasayakiPlaybackData
+import moe.antimony.hoshi.features.ai.AiGrammarOutcome
+import moe.antimony.hoshi.features.ai.AiGrammarPopupReply
+import moe.antimony.hoshi.features.ai.AiGrammarViewModel
+import moe.antimony.hoshi.features.ai.aiGrammarFailureMessage
+import moe.antimony.hoshi.features.ai.aiGrammarPopupLabels
+import moe.antimony.hoshi.features.ai.toJson
 import moe.antimony.hoshi.features.audio.AudioRequestHandler
 import moe.antimony.hoshi.features.audio.AudioSettings
 import moe.antimony.hoshi.features.audio.LocalAudioRepository
@@ -219,11 +225,17 @@ fun ReaderWebView(
     var fullscreenImage by remember { mutableStateOf<ReaderFullscreenImage?>(null) }
     val ankiViewModel: AnkiViewModel = hiltViewModel()
     val ankiUiState by ankiViewModel.uiState.collectAsStateWithLifecycle()
+    val aiGrammarViewModel: AiGrammarViewModel = hiltViewModel()
+    val aiGrammarUiState by aiGrammarViewModel.uiState.collectAsStateWithLifecycle()
     val popupAssets = remember(context) { LookupPopupAssets.load(context) }
     val readerPopupBridgeHolder = remember { ReaderLookupPopupBridgeCallbackHolder() }
     val popupDarkMode = effectiveSettings.usesDarkInterface(systemDarkTheme)
     val popupContentLanguageProfile = contentLanguageProfile
     val progressDisplay = readerProgressDisplay(contentLanguageProfile)
+    val aiGrammarLabels = aiGrammarPopupLabels(
+        isEnabled = aiGrammarUiState.popupSettings.isEnabled,
+        isConfigured = aiGrammarUiState.popupSettings.isConfigured,
+    )
     val readerPopupIframeDocument = remember(
         dictionaryStyles,
         dictionarySettings,
@@ -236,6 +248,7 @@ fun ReaderWebView(
         effectiveSettings.eInkMode,
         audioSettings,
         ankiUiState.popupSettings,
+        aiGrammarLabels,
         fontManager,
         fontLibraryState.revision,
         effectiveSettings.popupScale,
@@ -254,6 +267,7 @@ fun ReaderWebView(
             eInkMode = effectiveSettings.eInkMode,
             audioSettings = audioSettings,
             ankiSettings = ankiUiState.popupSettings,
+            aiGrammar = aiGrammarLabels,
             fontFaceCss = fontManager.popupFontFaceCss(),
             popupScale = effectiveSettings.popupScale,
             contentLanguageProfile = popupContentLanguageProfile,
@@ -751,6 +765,26 @@ fun ReaderWebView(
             }
             is ReaderLookupPopupBridgeMessage.PlayWordAudio -> {
                 WordAudioPlayer.get(context).play(message.url, message.mode)
+            }
+            is ReaderLookupPopupBridgeMessage.AiGrammar -> {
+                val popup = popupById(message.popupId) ?: return
+                val messageId = message.messageId ?: return
+                val selection = popup.state.selection
+                aiGrammarViewModel.analyzeAsync(
+                    sentence = selection.sentence,
+                    word = selection.text,
+                    bookTitle = popup.state.ankiContext.documentTitle,
+                    forceRefresh = message.refresh,
+                ) { outcome ->
+                    val reply = when (outcome) {
+                        is AiGrammarOutcome.Success -> AiGrammarPopupReply(ok = true, text = outcome.text)
+                        is AiGrammarOutcome.Failure -> AiGrammarPopupReply(
+                            ok = false,
+                            message = aiGrammarFailureMessage(context, outcome.reason),
+                        )
+                    }
+                    replyReaderPopupMessage(message.popupId, messageId, reply.toJson())
+                }
             }
             is ReaderLookupPopupBridgeMessage.MineEntry -> {
                 val popup = popupById(message.popupId) ?: return

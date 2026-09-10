@@ -90,6 +90,13 @@ class FakeElement {
         return [];
     }
 
+    querySelector(selector) {
+        if (selector === ':scope > .ai-grammar') {
+            return this.children.find((child) => child.className === 'ai-grammar') ?? null;
+        }
+        return null;
+    }
+
     addEventListener(type, listener) {
         const listeners = this.listeners?.get(type) ?? [];
         listeners.push(listener);
@@ -132,6 +139,8 @@ function popupContext({
     duplicateStates = {},
     kanjiResult = null,
     getEntry = null,
+    aiGrammarEnabled = false,
+    aiGrammarReply = null,
 } = {}) {
     const documentElement = new FakeElement();
     documentElement.childProbeWidth = htmlProbeWidth;
@@ -146,6 +155,20 @@ function popupContext({
     const documentListeners = new Map();
     const entriesContainer = new FakeElement();
     const overlay = new FakeElement();
+    const findPopupNode = (selector) => {
+        const nodes = descendants(entriesContainer);
+        const entryMatch = selector.match(/^\.entry\[data-entry-index="(\d+)"\]$/);
+        if (entryMatch) {
+            return nodes.find((node) => node.className === 'entry' && node.dataset.entryIndex === entryMatch[1]) ?? null;
+        }
+        const slotMatch = selector.match(/^\.button-slot\[data-kind="([a-z-]+)"\]\[data-entry-index="(\d+)"\]$/);
+        if (slotMatch) {
+            return nodes.find((node) => node.className === 'button-slot'
+                && node.dataset.kind === slotMatch[1]
+                && node.dataset.entryIndex === slotMatch[2]) ?? null;
+        }
+        return null;
+    };
     const document = {
         body,
         documentElement,
@@ -171,7 +194,8 @@ function popupContext({
             return [];
         },
         querySelector(selector) {
-            return selector === '.overlay' ? overlay : null;
+            if (selector === '.overlay') return overlay;
+            return findPopupNode(selector);
         },
     };
     const selectTextCalls = [];
@@ -179,6 +203,7 @@ function popupContext({
     const mineEntryMessages = [];
     const duplicateCheckMessages = [];
     const showNotesMessages = [];
+    const aiGrammarMessages = [];
     const kanjiRedirectMessages = [];
     const kanjiRedirectCommittedMessages = [];
     let currentDuplicateStates = duplicateStates;
@@ -194,6 +219,11 @@ function popupContext({
                 return '位置';
             },
         },
+        aiGrammarEnabled,
+        aiGrammarLabel: 'AI grammar analysis',
+        aiGrammarPendingLabel: 'Analyzing…',
+        aiGrammarErrorLabel: 'Grammar analysis failed.',
+        aiGrammarRefreshLabel: 'Analyze again',
     };
     const context = {
         console,
@@ -228,6 +258,12 @@ function popupContext({
                     postMessage(message) {
                         showNotesMessages.push(message);
                         return true;
+                    },
+                },
+                aiGrammar: {
+                    postMessage(message) {
+                        aiGrammarMessages.push(message);
+                        return aiGrammarReply;
                     },
                 },
                 kanjiRedirect: {
@@ -273,6 +309,7 @@ function popupContext({
         showNotesMessages,
         kanjiRedirectMessages,
         kanjiRedirectCommittedMessages,
+        aiGrammarMessages,
         entriesContainer,
         setDuplicateStates(value) { currentDuplicateStates = value; },
     };
@@ -1029,4 +1066,83 @@ test('only the latest Kanji response may replace popup state or commit native hi
 
     assert.equal(setup.entriesContainer.children.length, 0);
     assert.equal(setup.kanjiRedirectCommittedMessages.length, 1);
+});
+
+function renderAiGrammarEntry(setup, entry = { expression: '食べる', reading: 'たべる' }, entryIndex = 0) {
+    setup.context.window.lookupEntries = [entry];
+    const entryDiv = setup.document.createElement('div');
+    entryDiv.className = 'entry';
+    entryDiv.setAttribute('data-entry-index', String(entryIndex));
+    entryDiv.appendChild(setup.context.createEntryHeader(entry, entryIndex));
+    setup.entriesContainer.appendChild(entryDiv);
+    return entryDiv;
+}
+
+test('lookup popup only renders the AI grammar action when the feature is enabled', () => {
+    const disabled = popupContext({ aiGrammarEnabled: false });
+    const disabledEntry = renderAiGrammarEntry(disabled);
+    assert.equal(descendants(disabledEntry).some((node) => node.dataset?.kind === 'ai'), false);
+
+    const enabled = popupContext({ aiGrammarEnabled: true });
+    const enabledEntry = renderAiGrammarEntry(enabled);
+    const slot = descendants(enabledEntry).find((node) => node.dataset?.kind === 'ai');
+    assert.ok(slot);
+    assert.equal(
+        slot.style.properties.get('--button-icon-url'),
+        'url("https://appassets.androidplatform.net/popup/icons/auto_awesome.svg")',
+    );
+});
+
+test('AI grammar action requests the sentence analysis and renders the returned text', async () => {
+    const setup = popupContext({
+        aiGrammarEnabled: true,
+        aiGrammarReply: { ok: true, text: '・动词「食べる」一段活用，辞书形' },
+    });
+    const entryDiv = renderAiGrammarEntry(setup);
+
+    await setup.context.analyzeGrammarAtIndex(0);
+
+    assert.deepEqual(setup.aiGrammarMessages.map((message) => message.refresh), [false]);
+    const block = descendants(entryDiv).find((node) => node.className === 'ai-grammar');
+    assert.equal(block.dataset.state, 'ready');
+    assert.equal(block.dataset.loaded, 'true');
+    const text = descendants(block).find((node) => node.className === 'ai-grammar-text');
+    assert.equal(text.textContent, '・动词「食べる」一段活用，辞书形');
+    const refresh = descendants(block).find((node) => node.className === 'ai-grammar-refresh');
+    assert.equal(refresh.hidden, false);
+    assert.equal(refresh.textContent, 'Analyze again');
+});
+
+test('AI grammar action renders the failure message as text and reports an error state', async () => {
+    const setup = popupContext({
+        aiGrammarEnabled: true,
+        aiGrammarReply: { ok: false, message: '请先填入 DeepSeek API 密钥。' },
+    });
+    const entryDiv = renderAiGrammarEntry(setup);
+
+    await setup.context.analyzeGrammarAtIndex(0);
+
+    const block = descendants(entryDiv).find((node) => node.className === 'ai-grammar');
+    assert.equal(block.dataset.state, 'error');
+    const text = descendants(block).find((node) => node.className === 'ai-grammar-text');
+    assert.equal(text.textContent, '请先填入 DeepSeek API 密钥。');
+    const refresh = descendants(block).find((node) => node.className === 'ai-grammar-refresh');
+    assert.equal(refresh.hidden, true);
+});
+
+test('a second star tap reuses the rendered answer and only the card refresh asks again', async () => {
+    const setup = popupContext({
+        aiGrammarEnabled: true,
+        aiGrammarReply: { ok: true, text: '解析结果' },
+    });
+    renderAiGrammarEntry(setup);
+
+    await setup.context.analyzeGrammarAtIndex(0);
+    await setup.context.analyzeGrammarAtIndex(0);
+
+    assert.deepEqual(setup.aiGrammarMessages.map((message) => message.refresh), [false]);
+
+    await setup.context.refreshGrammarAtIndex(0);
+
+    assert.deepEqual(setup.aiGrammarMessages.map((message) => message.refresh), [false, true]);
 });
