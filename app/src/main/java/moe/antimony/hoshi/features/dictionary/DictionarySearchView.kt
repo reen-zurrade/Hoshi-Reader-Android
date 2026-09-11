@@ -77,12 +77,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import moe.antimony.hoshi.LocalHoshiUiDependencies
 import moe.antimony.hoshi.R
 import moe.antimony.hoshi.content.ContentLanguageProfile
-import moe.antimony.hoshi.features.ai.AiGrammarOutcome
-import moe.antimony.hoshi.features.ai.AiGrammarPopupReply
-import moe.antimony.hoshi.features.ai.AiGrammarViewModel
-import moe.antimony.hoshi.features.ai.aiGrammarFailureMessage
-import moe.antimony.hoshi.features.ai.aiGrammarPopupLabels
-import moe.antimony.hoshi.features.ai.toJson
 import moe.antimony.hoshi.features.audio.AudioRequestHandler
 import moe.antimony.hoshi.features.audio.AudioSettings
 import moe.antimony.hoshi.features.audio.WordAudioPlayer
@@ -194,8 +188,6 @@ fun DictionarySearchView(
     val assets = remember(context) { LookupPopupAssets.load(context) }
     val searchViewModel: DictionarySearchViewModel = hiltViewModel()
     val ankiViewModel: AnkiViewModel = hiltViewModel()
-    val aiGrammarViewModel: AiGrammarViewModel = hiltViewModel()
-    val aiGrammarUiState by aiGrammarViewModel.uiState.collectAsStateWithLifecycle()
     val uiState by searchViewModel.uiState.collectAsStateWithLifecycle()
     val ankiUiState by ankiViewModel.uiState.collectAsStateWithLifecycle()
     val profileState by appContainer.profileRepository.state.collectAsStateWithLifecycle()
@@ -246,10 +238,6 @@ fun DictionarySearchView(
             popupScale = readerSettings.popupScale,
         )
     }
-    val aiGrammarLabels = aiGrammarPopupLabels(
-        isEnabled = aiGrammarUiState.popupSettings.isEnabled,
-        isConfigured = aiGrammarUiState.popupSettings.isConfigured,
-    )
     val readerPopupIframeDocument = remember(
         uiState.dictionaryStyles,
         uiState.dictionarySettings,
@@ -262,7 +250,6 @@ fun DictionarySearchView(
         readerSettings.eInkMode,
         uiState.audioSettings,
         ankiUiState.popupSettings,
-        aiGrammarLabels,
         fontFaceCss,
         readerSettings.popupScale,
         rootContentLanguageProfile,
@@ -280,7 +267,6 @@ fun DictionarySearchView(
             eInkMode = readerSettings.eInkMode,
             audioSettings = uiState.audioSettings,
             ankiSettings = ankiUiState.popupSettings,
-            aiGrammar = aiGrammarLabels,
             fontFaceCss = fontFaceCss,
             popupScale = readerSettings.popupScale,
             contentLanguageProfile = rootContentLanguageProfile,
@@ -461,30 +447,6 @@ fun DictionarySearchView(
             }
             is ReaderLookupPopupBridgeMessage.PlayWordAudio -> {
                 WordAudioPlayer.get(context).play(message.url, message.mode)
-            }
-            is ReaderLookupPopupBridgeMessage.AiGrammar -> {
-                val messageId = message.messageId ?: return
-                val selection = if (message.popupId == DictionarySearchRootPopupId) {
-                    null
-                } else {
-                    popupById(message.popupId)?.state?.selection
-                }
-                val sentence = selection?.sentence ?: uiState.lastQuery.ifBlank { uiState.query }
-                aiGrammarViewModel.analyzeAsync(
-                    sentence = sentence,
-                    word = selection?.text,
-                    bookTitle = popupById(message.popupId)?.state?.ankiContext?.documentTitle,
-                    forceRefresh = message.refresh,
-                ) { outcome ->
-                    val reply = when (outcome) {
-                        is AiGrammarOutcome.Success -> AiGrammarPopupReply(ok = true, text = outcome.text)
-                        is AiGrammarOutcome.Failure -> AiGrammarPopupReply(
-                            ok = false,
-                            message = aiGrammarFailureMessage(context, outcome.reason),
-                        )
-                    }
-                    replyIframeMessage(message.popupId, messageId, reply.toJson())
-                }
             }
             is ReaderLookupPopupBridgeMessage.MineEntry -> {
                 val messageId = message.messageId ?: return

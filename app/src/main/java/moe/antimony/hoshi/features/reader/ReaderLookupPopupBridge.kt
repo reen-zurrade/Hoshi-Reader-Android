@@ -229,12 +229,6 @@ internal sealed class ReaderLookupPopupBridgeMessage {
         val mode: AudioPlaybackMode,
     ) : ReaderLookupPopupBridgeMessage()
 
-    data class AiGrammar(
-        override val popupId: String,
-        override val messageId: String?,
-        val refresh: Boolean,
-    ) : ReaderLookupPopupBridgeMessage()
-
     data class MineEntry(
         override val popupId: String,
         override val messageId: String?,
@@ -348,11 +342,6 @@ internal sealed class ReaderLookupPopupBridgeMessage {
                         mode = AudioPlaybackMode.fromRawValue(body.string("mode")),
                     )
                 }
-                "aiGrammar" -> AiGrammar(
-                    popupId = popupId,
-                    messageId = messageId ?: return null,
-                    refresh = payload.obj("body")?.boolean("refresh") ?: false,
-                )
                 "mineEntry" -> {
                     val body = payload.obj("body") ?: return null
                     MineEntry(

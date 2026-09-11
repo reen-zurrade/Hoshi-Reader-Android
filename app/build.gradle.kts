@@ -96,7 +96,7 @@ android {
         debug {
             applicationIdSuffix = ".debug"
             signingConfig = signingConfigs.getByName("debugStable")
-            manifestPlaceholders["appLabel"] = "Hoshi Debug"
+            manifestPlaceholders["appLabel"] = "Hoshi AITransV"
             ndk {
                 abiFilters += listOf("arm64-v8a", "x86_64")
             }
