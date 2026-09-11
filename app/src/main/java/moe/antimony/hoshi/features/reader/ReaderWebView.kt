@@ -10,10 +10,15 @@ import android.view.WindowManager
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -21,6 +26,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -68,9 +74,11 @@ import moe.antimony.hoshi.epub.ReaderHighlight
 import moe.antimony.hoshi.epub.SasayakiMatch
 import moe.antimony.hoshi.epub.SasayakiMatchData
 import moe.antimony.hoshi.epub.SasayakiPlaybackData
+import moe.antimony.hoshi.features.ai.AiGrammarMessageRole
 import moe.antimony.hoshi.features.ai.AiGrammarOutcome
 import moe.antimony.hoshi.features.ai.AiGrammarPanelState
 import moe.antimony.hoshi.features.ai.AiGrammarPopupReply
+import moe.antimony.hoshi.features.ai.AiGrammarTurn
 import moe.antimony.hoshi.features.ai.AiGrammarViewModel
 import moe.antimony.hoshi.features.ai.aiGrammarFailureMessage
 import moe.antimony.hoshi.features.ai.aiGrammarPopupLabels
@@ -2001,7 +2009,8 @@ fun ReaderWebView(
         AiGrammarPanelHost(
             state = aiGrammarPanelState,
             onDismiss = aiGrammarViewModel::dismissPanel,
-            onRetry = aiGrammarViewModel::analyzeSelection,
+            onAsk = aiGrammarViewModel::ask,
+            onRetry = aiGrammarViewModel::retryLast,
         )
         if (showSasayaki && sasayakiPlayer != null && sasayakiAudioRepository != null) {
             SasayakiSheet(
@@ -2138,39 +2147,74 @@ private fun SasayakiPlaybackData?.hasStoredAudioSource(): Boolean =
 /**
  * Grammar panel opened from the native text-selection toolbar.
  *
- * The selected sentence stays visible above the answer so the reader always knows what is being
- * analyzed. Model output is rendered as plain text — never parsed as markup — and answers are
- * scrollable because they can be long.
+ * The selected sentence stays visible above the conversation so the reader always knows what is being
+ * analyzed. Model output is rendered as plain text — never parsed as markup — and the transcript
+ * scrolls because it grows with every follow-up.
  */
 @Composable
 private fun AiGrammarPanelHost(
     state: AiGrammarPanelState,
     onDismiss: () -> Unit,
-    onRetry: (String) -> Unit,
+    onAsk: (String) -> Unit,
+    onRetry: () -> Unit,
 ) {
-    if (state is AiGrammarPanelState.Hidden) return
-    val context = LocalContext.current
-    val sentence = when (state) {
-        is AiGrammarPanelState.Loading -> state.sentence
-        is AiGrammarPanelState.Ready -> state.sentence
-        is AiGrammarPanelState.Failed -> state.sentence
-        AiGrammarPanelState.Hidden -> ""
+    if (state !is AiGrammarPanelState.Visible) return
+    var draft by remember(state.sentence) { mutableStateOf("") }
+    val scrollState = rememberScrollState()
+    LaunchedEffect(state.turns.size, state.pending) {
+        scrollState.animateScrollTo(scrollState.maxValue)
     }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.ai_grammar_action)) },
         text = {
-            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
-                Text(text = sentence, style = MaterialTheme.typography.bodySmall)
-                HorizontalDivider(modifier = Modifier.padding(vertical = 10.dp))
-                Text(
-                    text = when (state) {
-                        is AiGrammarPanelState.Loading -> stringResource(R.string.ai_grammar_pending)
-                        is AiGrammarPanelState.Ready -> state.text
-                        is AiGrammarPanelState.Failed -> aiGrammarFailureMessage(context, state.reason)
-                        AiGrammarPanelState.Hidden -> ""
-                    },
+            Column {
+                Column(
+                    modifier = Modifier
+                        .weight(1f, fill = false)
+                        .verticalScroll(scrollState),
+                ) {
+                    Text(text = state.sentence, style = MaterialTheme.typography.bodySmall)
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 10.dp))
+                    state.turns.forEach { turn ->
+                        AiGrammarTurnBubble(turn)
+                    }
+                    if (state.pending) {
+                        Text(
+                            text = stringResource(R.string.ai_grammar_pending),
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
+                }
+                Spacer(modifier = Modifier.height(12.dp))
+                OutlinedTextField(
+                    value = draft,
+                    onValueChange = { draft = it },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = !state.pending,
+                    placeholder = { Text(stringResource(R.string.ai_grammar_followup_hint)) },
+                    maxLines = 3,
                 )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                ) {
+                    if (state.turns.any { it.failure != null }) {
+                        TextButton(onClick = onRetry) {
+                            Text(stringResource(R.string.ai_grammar_refresh))
+                        }
+                    }
+                    TextButton(
+                        onClick = {
+                            val question = draft
+                            draft = ""
+                            onAsk(question)
+                        },
+                        enabled = !state.pending && draft.isNotBlank(),
+                    ) {
+                        Text(stringResource(R.string.ai_grammar_send))
+                    }
+                }
             }
         },
         confirmButton = {
@@ -2178,12 +2222,31 @@ private fun AiGrammarPanelHost(
                 Text(stringResource(R.string.action_close))
             }
         },
-        dismissButton = {
-            if (state !is AiGrammarPanelState.Loading) {
-                TextButton(onClick = { onRetry(sentence) }) {
-                    Text(stringResource(R.string.ai_grammar_refresh))
-                }
-            }
+    )
+}
+
+/** One transcript bubble. User questions are tinted and indented; failures use the error colour. */
+@Composable
+private fun AiGrammarTurnBubble(turn: AiGrammarTurn) {
+    val context = LocalContext.current
+    val isUser = turn.role == AiGrammarMessageRole.User
+    val text = turn.failure?.let { aiGrammarFailureMessage(context, it) } ?: turn.text
+    if (text.isBlank()) return
+    Text(
+        text = text,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(
+                start = if (isUser) 24.dp else 0.dp,
+                end = if (isUser) 0.dp else 24.dp,
+                top = 6.dp,
+                bottom = 6.dp,
+            ),
+        color = when {
+            turn.failure != null -> MaterialTheme.colorScheme.error
+            isUser -> MaterialTheme.colorScheme.primary
+            else -> Color.Unspecified
         },
+        style = MaterialTheme.typography.bodyMedium,
     )
 }

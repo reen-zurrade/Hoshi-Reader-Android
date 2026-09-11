@@ -796,6 +796,8 @@
     <string name="ai_grammar_action" comment="Popup action label, intentionally matching the AI grammar settings row.">AI grammar analysis</string>
     <string name="ai_grammar_pending">Analyzing…</string>
     <string name="ai_grammar_refresh">Analyze again</string>
+    <string name="ai_grammar_send">Send</string>
+    <string name="ai_grammar_followup_hint">Ask a follow-up…</string>
     <string name="ai_grammar_error_generic">Grammar analysis failed.</string>
     <string name="ai_grammar_error_not_configured">Add a DeepSeek API key under Settings → AI grammar analysis.</string>
     <string name="ai_grammar_error_no_sentence">No sentence was available to analyze.</string>

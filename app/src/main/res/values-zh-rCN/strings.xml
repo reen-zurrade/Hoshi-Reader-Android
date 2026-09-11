@@ -794,6 +794,8 @@
     <string name="ai_grammar_action" comment="Popup action label, intentionally matching the AI grammar settings row.">AI 文法解析</string>
     <string name="ai_grammar_pending">解析中…</string>
     <string name="ai_grammar_refresh">重新解析</string>
+    <string name="ai_grammar_send">发送</string>
+    <string name="ai_grammar_followup_hint">继续提问…</string>
     <string name="ai_grammar_error_generic">文法解析失败。</string>
     <string name="ai_grammar_error_not_configured">请先在「设置 → AI 文法解析」中填入 DeepSeek API 密钥。</string>
     <string name="ai_grammar_error_no_sentence">没有可用于解析的句子。</string>

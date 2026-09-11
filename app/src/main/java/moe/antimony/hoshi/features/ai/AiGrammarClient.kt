@@ -33,6 +33,17 @@ enum class AiGrammarFailure {
     EmptyResponse,
 }
 
+/** One chat turn. The system prompt comes from [AiGrammarSettings] and is never a turn. */
+enum class AiGrammarMessageRole(val wireName: String) {
+    User("user"),
+    Assistant("assistant"),
+}
+
+internal data class AiGrammarMessage(
+    val role: AiGrammarMessageRole,
+    val content: String,
+)
+
 internal data class AiGrammarHttpResponse(
     val statusCode: Int,
     val body: String,
@@ -79,8 +90,13 @@ internal class HttpAiGrammarTransport : AiGrammarTransport {
 }
 
 internal fun interface AiGrammarClient {
-    fun analyze(settings: AiGrammarSettings, userPrompt: String): AiGrammarOutcome
+    /** Runs one completion for [messages], prepending the configured system prompt. */
+    fun analyze(settings: AiGrammarSettings, messages: List<AiGrammarMessage>): AiGrammarOutcome
 }
+
+/** Single-turn convenience: analysis of one sentence, used by the lookup-popup entry point. */
+internal fun AiGrammarClient.analyze(settings: AiGrammarSettings, userPrompt: String): AiGrammarOutcome =
+    analyze(settings, listOf(AiGrammarMessage(AiGrammarMessageRole.User, userPrompt)))
 
 /**
  * DeepSeek chat-completions client. The wire format is the OpenAI-compatible one DeepSeek serves at
@@ -90,26 +106,28 @@ internal fun interface AiGrammarClient {
 internal class DeepSeekAiGrammarClient(
     private val transport: AiGrammarTransport = HttpAiGrammarTransport(),
 ) : AiGrammarClient {
-    override fun analyze(settings: AiGrammarSettings, userPrompt: String): AiGrammarOutcome {
-        val messages = buildJsonArray {
+    override fun analyze(settings: AiGrammarSettings, messages: List<AiGrammarMessage>): AiGrammarOutcome {
+        val requestMessages = buildJsonArray {
             add(
                 buildJsonObject {
                     put("role", "system")
                     put("content", settings.systemPrompt)
                 },
             )
-            add(
-                buildJsonObject {
-                    put("role", "user")
-                    put("content", userPrompt)
-                },
-            )
+            messages.forEach { message ->
+                add(
+                    buildJsonObject {
+                        put("role", message.role.wireName)
+                        put("content", message.content)
+                    },
+                )
+            }
         }
         val body = buildJsonObject {
             put("model", settings.model)
             put("stream", false)
             put("max_tokens", settings.maxTokens)
-            put("messages", messages)
+            put("messages", requestMessages)
             if (!settings.thinkingEnabled) {
                 put("thinking", buildJsonObject { put("type", "disabled") })
             }

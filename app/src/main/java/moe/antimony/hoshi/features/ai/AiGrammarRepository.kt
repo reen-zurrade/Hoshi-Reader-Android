@@ -65,6 +65,18 @@ internal class AiGrammarRepository(
         return outcome
     }
 
+    /**
+     * Answers one turn of an ongoing conversation.
+     *
+     * Follow-ups are deliberately **not** memoized: they depend on the whole history, so a cache keyed
+     * on the sentence alone would answer a different question than the one that was asked.
+     */
+    suspend fun respond(messages: List<AiGrammarMessage>): AiGrammarOutcome {
+        val settings = settingsRepository.settings.first()
+        if (!settings.isConfigured) return AiGrammarOutcome.Failure(AiGrammarFailure.NotConfigured)
+        return withContext(ioDispatcher) { client.analyze(settings, messages) }
+    }
+
     private suspend fun cached(key: String): String? = cacheLock.withLock { cache[key] }
 
     private suspend fun store(key: String, value: String) {
