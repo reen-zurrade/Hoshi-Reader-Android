@@ -129,7 +129,7 @@
     </plurals>
     <string name="settings_dictionaries" comment="Settings row label, intentionally matching the backup Dictionaries section.">Dictionaries</string>
     <string name="settings_anki">Anki</string>
-    <string name="settings_ai_grammar">AI grammar analysis</string>
+    <string name="settings_ai_grammar" comment="Settings row label, intentionally matching the AI grammar action label.">AI grammar analysis</string>
     <string name="settings_profiles" comment="Settings row label, intentionally matching the Profiles screen title.">Profiles</string>
     <string name="settings_appearance">Appearance</string>
     <string name="settings_behavior">Behavior</string>
@@ -591,7 +591,7 @@
     <string name="anki_open_app_settings">Open App Settings</string>
     <string name="anki_fetching">Fetching</string>
     <string name="anki_deck" comment="Anki deck selector label, intentionally matching duplicate scope deck label.">Deck</string>
-    <string name="anki_model">Model</string>
+    <string name="anki_model" comment="Anki settings row label, intentionally matching the AI grammar model label.">Model</string>
     <string name="anki_allow_duplicates">Allow Duplicates</string>
     <string name="anki_check_duplicates_all_models">Check for duplicates across all models</string>
     <string name="anki_duplicate_check_scope">Duplicate Check Scope</string>
@@ -786,14 +786,14 @@
     <string name="ai_grammar_status_missing_key">Add a DeepSeek API key to start analyzing sentences.</string>
     <string name="ai_grammar_api_key">API key</string>
     <string name="ai_grammar_base_url">Endpoint</string>
-    <string name="ai_grammar_model">Model</string>
+    <string name="ai_grammar_model" comment="AI grammar settings row label, intentionally matching the Anki model label.">Model</string>
     <string name="ai_grammar_max_tokens">Max output tokens</string>
     <string name="ai_grammar_timeout">Timeout (seconds)</string>
     <string name="ai_grammar_system_prompt">System prompt</string>
     <string name="ai_grammar_thinking">Thinking mode</string>
     <string name="ai_grammar_reset_prompt">Reset system prompt</string>
     <string name="ai_grammar_privacy_hint">The analyzed sentence and your system prompt are sent to the configured endpoint. Results are cached on this device until the app is restarted.</string>
-    <string name="ai_grammar_action">AI grammar analysis</string>
+    <string name="ai_grammar_action" comment="Popup action label, intentionally matching the AI grammar settings row.">AI grammar analysis</string>
     <string name="ai_grammar_pending">Analyzing…</string>
     <string name="ai_grammar_refresh">Analyze again</string>
     <string name="ai_grammar_error_generic">Grammar analysis failed.</string>

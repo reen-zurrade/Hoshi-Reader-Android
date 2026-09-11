@@ -129,7 +129,7 @@
     </plurals>
     <string name="settings_dictionaries" comment="Settings row label, intentionally matching the backup Dictionaries section.">辞典</string>
     <string name="settings_anki">Anki</string>
-    <string name="settings_ai_grammar">AI 文法解析</string>
+    <string name="settings_ai_grammar" comment="Settings row label, intentionally matching the AI grammar action label.">AI 文法解析</string>
     <string name="settings_profiles" comment="Settings row label, intentionally matching the Profiles screen title.">Profile</string>
     <string name="settings_appearance">外观</string>
     <string name="settings_behavior">行为</string>
@@ -589,7 +589,7 @@
     <string name="anki_open_app_settings">打开应用设置</string>
     <string name="anki_fetching">正在获取</string>
     <string name="anki_deck" comment="Anki deck selector label, intentionally matching duplicate scope deck label.">牌组</string>
-    <string name="anki_model">模板</string>
+    <string name="anki_model" comment="Anki settings row label, intentionally matching the AI grammar model label.">模板</string>
     <string name="anki_allow_duplicates">允许重复</string>
     <string name="anki_check_duplicates_all_models">跨所有模板检查重复</string>
     <string name="anki_duplicate_check_scope">重复检查范围</string>
@@ -784,14 +784,14 @@
     <string name="ai_grammar_status_missing_key">填入 DeepSeek API 密钥后即可开始解析句子。</string>
     <string name="ai_grammar_api_key">API 密钥</string>
     <string name="ai_grammar_base_url">接口地址</string>
-    <string name="ai_grammar_model">模型</string>
+    <string name="ai_grammar_model" comment="AI grammar settings row label, intentionally matching the Anki model label.">模型</string>
     <string name="ai_grammar_max_tokens">最大输出 token</string>
     <string name="ai_grammar_timeout">超时（秒）</string>
     <string name="ai_grammar_system_prompt">系统提示词</string>
     <string name="ai_grammar_thinking">思考模式</string>
     <string name="ai_grammar_reset_prompt">恢复默认系统提示词</string>
     <string name="ai_grammar_privacy_hint">被解析的句子会连同系统提示词一起发送到你配置的接口。解析结果在本次运行期间缓存在本机。</string>
-    <string name="ai_grammar_action">AI 文法解析</string>
+    <string name="ai_grammar_action" comment="Popup action label, intentionally matching the AI grammar settings row.">AI 文法解析</string>
     <string name="ai_grammar_pending">解析中…</string>
     <string name="ai_grammar_refresh">重新解析</string>
     <string name="ai_grammar_error_generic">文法解析失败。</string>
