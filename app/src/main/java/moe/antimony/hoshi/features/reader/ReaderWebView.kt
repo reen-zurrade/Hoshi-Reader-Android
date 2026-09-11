@@ -12,9 +12,17 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -29,6 +37,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -59,6 +68,7 @@ import moe.antimony.hoshi.epub.SasayakiMatch
 import moe.antimony.hoshi.epub.SasayakiMatchData
 import moe.antimony.hoshi.epub.SasayakiPlaybackData
 import moe.antimony.hoshi.features.ai.AiGrammarOutcome
+import moe.antimony.hoshi.features.ai.AiGrammarPanelState
 import moe.antimony.hoshi.features.ai.AiGrammarPopupReply
 import moe.antimony.hoshi.features.ai.AiGrammarViewModel
 import moe.antimony.hoshi.features.ai.aiGrammarFailureMessage
@@ -227,6 +237,7 @@ fun ReaderWebView(
     val ankiUiState by ankiViewModel.uiState.collectAsStateWithLifecycle()
     val aiGrammarViewModel: AiGrammarViewModel = hiltViewModel()
     val aiGrammarUiState by aiGrammarViewModel.uiState.collectAsStateWithLifecycle()
+    val aiGrammarPanelState by aiGrammarViewModel.panelState.collectAsStateWithLifecycle()
     val popupAssets = remember(context) { LookupPopupAssets.load(context) }
     val readerPopupBridgeHolder = remember { ReaderLookupPopupBridgeCallbackHolder() }
     val popupDarkMode = effectiveSettings.usesDarkInterface(systemDarkTheme)
@@ -1814,6 +1825,9 @@ fun ReaderWebView(
                         onReaderInteraction = ::handleReaderInteraction,
                         onImageTapped = ::openFullscreenImage,
                         onHighlightCreated = ::addHighlight,
+                        onAiGrammarSelection = { sentence ->
+                            aiGrammarViewModel.analyzeSelection(sentence)
+                        },
                         readerPopupBridgeHolder = readerPopupBridgeHolder,
                         readerPopupResourceHandler = readerPopupResourceHandler,
                         readerPopupFrames = readerLookupPopupPayloads,
@@ -1983,6 +1997,11 @@ fun ReaderWebView(
                 onDismiss = stateHolder::dismissGoTo,
             )
         }
+        AiGrammarPanelHost(
+            state = aiGrammarPanelState,
+            onDismiss = aiGrammarViewModel::dismissPanel,
+            onRetry = aiGrammarViewModel::analyzeSelection,
+        )
         if (showSasayaki && sasayakiPlayer != null && sasayakiAudioRepository != null) {
             SasayakiSheet(
                 player = requireNotNull(sasayakiPlayer),
@@ -2114,3 +2133,56 @@ private data class SasayakiCueRevealResult(
 
 private fun SasayakiPlaybackData?.hasStoredAudioSource(): Boolean =
     this?.audioUri?.isNotBlank() == true || this?.audioFileName?.isNotBlank() == true
+
+/**
+ * Grammar panel opened from the native text-selection toolbar.
+ *
+ * The selected sentence stays visible above the answer so the reader always knows what is being
+ * analyzed. Model output is rendered as plain text — never parsed as markup — and answers are
+ * scrollable because they can be long.
+ */
+@Composable
+private fun AiGrammarPanelHost(
+    state: AiGrammarPanelState,
+    onDismiss: () -> Unit,
+    onRetry: (String) -> Unit,
+) {
+    if (state is AiGrammarPanelState.Hidden) return
+    val context = LocalContext.current
+    val sentence = when (state) {
+        is AiGrammarPanelState.Loading -> state.sentence
+        is AiGrammarPanelState.Ready -> state.sentence
+        is AiGrammarPanelState.Failed -> state.sentence
+        AiGrammarPanelState.Hidden -> ""
+    }
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.ai_grammar_action)) },
+        text = {
+            Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
+                Text(text = sentence, style = MaterialTheme.typography.bodySmall)
+                HorizontalDivider(modifier = Modifier.padding(vertical = 10.dp))
+                Text(
+                    text = when (state) {
+                        is AiGrammarPanelState.Loading -> stringResource(R.string.ai_grammar_pending)
+                        is AiGrammarPanelState.Ready -> state.text
+                        is AiGrammarPanelState.Failed -> aiGrammarFailureMessage(context, state.reason)
+                        AiGrammarPanelState.Hidden -> ""
+                    },
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.action_close))
+            }
+        },
+        dismissButton = {
+            if (state !is AiGrammarPanelState.Loading) {
+                TextButton(onClick = { onRetry(sentence) }) {
+                    Text(stringResource(R.string.ai_grammar_refresh))
+                }
+            }
+        },
+    )
+}

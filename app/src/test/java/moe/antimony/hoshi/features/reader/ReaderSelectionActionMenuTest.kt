@@ -2,18 +2,30 @@ package moe.antimony.hoshi.features.reader
 
 import android.view.Menu
 import android.view.MenuItem
+import moe.antimony.hoshi.R
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class ReaderSelectionActionMenuTest {
     @Test
-    fun exposesCopyAsLeadingVisibleToolbarAction() {
-        val item = ReaderSelectionActionMenu.actionModeItems.single()
+    fun exposesGrammarAndCopyAsLeadingVisibleToolbarActions() {
+        val items = ReaderSelectionActionMenu.actionModeItems
 
-        assertEquals(ReaderSelectionActionMenu.copyItemId, item.id)
-        assertEquals(Menu.NONE, item.order)
-        assertEquals(MenuItem.SHOW_AS_ACTION_ALWAYS, item.showAsAction)
+        assertEquals(
+            listOf(ReaderSelectionActionMenu.aiGrammarItemId, ReaderSelectionActionMenu.copyItemId),
+            items.map { it.id },
+        )
+        assertEquals(listOf(Menu.NONE, Menu.NONE + 1), items.map { it.order })
+        assertTrue(items.all { it.showAsAction == MenuItem.SHOW_AS_ACTION_ALWAYS })
+    }
+
+    @Test
+    fun labelsEachActionWithItsOwnLocalizedString() {
+        val titles = ReaderSelectionActionMenu.actionModeItems.associate { it.id to it.titleRes }
+
+        assertEquals(R.string.ai_grammar_action, titles[ReaderSelectionActionMenu.aiGrammarItemId])
+        assertEquals(R.string.action_copy, titles[ReaderSelectionActionMenu.copyItemId])
     }
 
     @Test

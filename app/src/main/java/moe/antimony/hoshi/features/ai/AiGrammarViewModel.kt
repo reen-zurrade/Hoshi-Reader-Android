@@ -29,12 +29,51 @@ data class AiGrammarUiState(
         )
 }
 
+/**
+ * State of the grammar panel that the native text-selection toolbar opens.
+ *
+ * Failures carry the transport [AiGrammarFailure] rather than a message: localization belongs to the
+ * UI layer, which maps it with [aiGrammarFailureMessage].
+ */
+sealed interface AiGrammarPanelState {
+    data object Hidden : AiGrammarPanelState
+    data class Loading(val sentence: String) : AiGrammarPanelState
+    data class Ready(val sentence: String, val text: String) : AiGrammarPanelState
+    data class Failed(val sentence: String, val reason: AiGrammarFailure) : AiGrammarPanelState
+}
+
 @HiltViewModel
 internal class AiGrammarViewModel @Inject constructor(
     private val repository: AiGrammarRepository,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(AiGrammarUiState())
     val uiState: StateFlow<AiGrammarUiState> = _uiState.asStateFlow()
+
+    private val _panelState = MutableStateFlow<AiGrammarPanelState>(AiGrammarPanelState.Hidden)
+    val panelState: StateFlow<AiGrammarPanelState> = _panelState.asStateFlow()
+
+    /**
+     * Analyzes text the user selected with the platform's own selection handles. Unlike the lookup
+     * popup path this carries its own sentence, because the selection is not tied to a lookup entry.
+     */
+    fun analyzeSelection(sentence: String) {
+        val trimmed = sentence.trim()
+        if (trimmed.isEmpty()) return
+        _panelState.value = AiGrammarPanelState.Loading(trimmed)
+        viewModelScope.launch {
+            val outcome = runCatching {
+                repository.analyze(AiGrammarRequest(sentence = trimmed))
+            }.getOrElse { AiGrammarOutcome.Failure(AiGrammarFailure.Network) }
+            _panelState.value = when (outcome) {
+                is AiGrammarOutcome.Success -> AiGrammarPanelState.Ready(trimmed, outcome.text)
+                is AiGrammarOutcome.Failure -> AiGrammarPanelState.Failed(trimmed, outcome.reason)
+            }
+        }
+    }
+
+    fun dismissPanel() {
+        _panelState.value = AiGrammarPanelState.Hidden
+    }
 
     init {
         viewModelScope.launch {

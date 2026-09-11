@@ -92,6 +92,7 @@ internal fun ChapterWebView(
     onReaderInteraction: () -> Unit,
     onImageTapped: (String) -> Unit,
     onHighlightCreated: (HighlightColor, String, ReaderHighlightCreationResult) -> Unit,
+    onAiGrammarSelection: (String) -> Unit,
     readerPopupBridgeHolder: ReaderLookupPopupBridgeCallbackHolder,
     readerPopupResourceHandler: ReaderLookupPopupResourceHandler,
     readerPopupFrames: List<ReaderLookupPopupFramePayload>,
@@ -110,6 +111,7 @@ internal fun ChapterWebView(
     val currentOnReaderInteraction = rememberUpdatedState(onReaderInteraction)
     val currentOnImageTapped = rememberUpdatedState(onImageTapped)
     val currentOnHighlightCreated = rememberUpdatedState(onHighlightCreated)
+    val currentOnAiGrammarSelection = rememberUpdatedState(onAiGrammarSelection)
     val currentReaderPopupResourceHandler = rememberUpdatedState(readerPopupResourceHandler)
     val currentReaderPopupFrames = rememberUpdatedState(readerPopupFrames)
     val currentOnNextChapter = rememberUpdatedState(onNextChapter)
@@ -255,6 +257,9 @@ internal fun ChapterWebView(
                 isHorizontalScrollBarEnabled = false
                 this.onHighlightCreated = { color, id, creation ->
                     currentOnHighlightCreated.value(color, id, creation)
+                }
+                this.onAiGrammarSelected = { sentence ->
+                    currentOnAiGrammarSelection.value(sentence)
                 }
                 hideForReaderRestore()
                 setBackgroundColor(android.graphics.Color.TRANSPARENT)
@@ -580,6 +585,7 @@ internal fun readerSelectionMaxLength(settings: DictionarySettings): Int =
 
 private class HoshiReaderWebView(context: Context) : WebView(context) {
     var onHighlightCreated: (HighlightColor, String, ReaderHighlightCreationResult) -> Unit = { _, _, _ -> }
+    var onAiGrammarSelected: (String) -> Unit = {}
     private var nativeSelectionActionModeActive = false
     private var nativeSelectionActionMode: ActionMode? = null
     private var nativeSelectionContentRect: Rect? = null
@@ -707,6 +713,16 @@ private class HoshiReaderWebView(context: Context) : WebView(context) {
         }
     }
 
+    fun analyzeNativeSelection(mode: ActionMode) {
+        evaluateJavascript("window.getSelection().toString()") { result ->
+            val text = readerJavaScriptStringResult(result)
+            mode.finish()
+            if (text.isNotBlank()) {
+                onAiGrammarSelected(text)
+            }
+        }
+    }
+
     fun copyNativeSelectionToClipboard(mode: ActionMode) {
         evaluateJavascript("window.getSelection().toString()") { result ->
             val text = readerJavaScriptStringResult(result)
@@ -761,6 +777,10 @@ private class ReaderHighlightActionModeCallback(
     }
 
     override fun onActionItemClicked(mode: ActionMode, item: MenuItem): Boolean {
+        if (item.itemId == ReaderSelectionActionMenu.aiGrammarItemId) {
+            webView.analyzeNativeSelection(mode)
+            return true
+        }
         if (item.itemId == ReaderSelectionActionMenu.copyItemId) {
             webView.copyNativeSelectionToClipboard(mode)
             return true
@@ -793,7 +813,7 @@ private class ReaderHighlightActionModeCallback(
 
     private fun addAppItems(menu: Menu) {
         addHighlightMenu(menu)
-        addCopyMenu(menu)
+        addSelectionMenus(menu)
     }
 
     private fun addHighlightMenu(menu: Menu) {
@@ -808,14 +828,14 @@ private class ReaderHighlightActionModeCallback(
         }
     }
 
-    private fun addCopyMenu(menu: Menu) {
+    private fun addSelectionMenus(menu: Menu) {
         ReaderSelectionActionMenu.actionModeItems.forEach { item ->
             if (menu.findItem(item.id) != null) return@forEach
             menu.add(
                 ReaderSelectionActionMenu.groupId,
                 item.id,
                 item.order,
-                webView.context.getString(R.string.action_copy),
+                webView.context.getString(item.titleRes),
             ).setShowAsAction(item.showAsAction)
         }
     }
