@@ -767,8 +767,22 @@ fun ReaderWebView(
                 WordAudioPlayer.get(context).play(message.url, message.mode)
             }
             is ReaderLookupPopupBridgeMessage.AiGrammar -> {
-                val popup = popupById(message.popupId) ?: return
                 val messageId = message.messageId ?: return
+                val popup = popupById(message.popupId)
+                if (popup == null) {
+                    // The popup can disappear while the request is still in flight. Answer anyway:
+                    // the popup awaits this reply and would otherwise show nothing at all for the
+                    // whole timeout window.
+                    replyReaderPopupMessage(
+                        message.popupId,
+                        messageId,
+                        AiGrammarPopupReply(
+                            ok = false,
+                            message = context.getString(R.string.ai_grammar_error_generic),
+                        ).toJson(),
+                    )
+                    return
+                }
                 val selection = popup.state.selection
                 aiGrammarViewModel.analyzeAsync(
                     sentence = selection.sentence,

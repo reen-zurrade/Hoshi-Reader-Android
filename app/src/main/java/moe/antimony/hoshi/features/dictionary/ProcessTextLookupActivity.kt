@@ -392,8 +392,20 @@ private fun ProcessTextLookupOverlay(
                     WordAudioPlayer.get(context).play(message.url, message.mode)
                 }
                 is ReaderLookupPopupBridgeMessage.AiGrammar -> {
-                    val popup = popupById(message.popupId) ?: return
                     val messageId = message.messageId ?: return
+                    val popup = popupById(message.popupId)
+                    if (popup == null) {
+                        // Answer even when the popup is gone: the iframe awaits this reply.
+                        replyIframeMessage(
+                            message.popupId,
+                            messageId,
+                            AiGrammarPopupReply(
+                                ok = false,
+                                message = context.getString(R.string.ai_grammar_error_generic),
+                            ).toJson(),
+                        )
+                        return
+                    }
                     aiGrammarViewModel.analyzeAsync(
                         sentence = popup.state.selection.sentence,
                         word = popup.state.selection.text,
