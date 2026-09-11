@@ -137,8 +137,9 @@ class AiGrammarRepositoryTest {
     ) : AiGrammarClient {
         val prompts = mutableListOf<String>()
 
-        override fun analyze(settings: AiGrammarSettings, userPrompt: String): AiGrammarOutcome {
-            prompts += userPrompt
+        override fun analyze(settings: AiGrammarSettings, messages: List<AiGrammarMessage>): AiGrammarOutcome {
+            // Single-turn requests carry exactly one user message, which is what these tests assert on.
+            prompts += messages.lastOrNull { it.role == AiGrammarMessageRole.User }?.content.orEmpty()
             return outcome
         }
     }
