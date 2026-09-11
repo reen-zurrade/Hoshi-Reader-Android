@@ -70,6 +70,17 @@ android {
         }
     }
 
+    signingConfigs {
+        // Committed on purpose: AGP otherwise generates a fresh debug key on every CI runner, and
+        // Android then refuses to update an installed app whose signature changed. One stable key
+        // keeps `adb install -r` / tap-to-install working across builds.
+        create("debugStable") {
+            storeFile = file("debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+    }
     if (isReleaseSigningConfigured) {
         signingConfigs {
             create("release") {
@@ -84,6 +95,7 @@ android {
     buildTypes {
         debug {
             applicationIdSuffix = ".debug"
+            signingConfig = signingConfigs.getByName("debugStable")
             manifestPlaceholders["appLabel"] = "Hoshi Debug"
             ndk {
                 abiFilters += listOf("arm64-v8a", "x86_64")
