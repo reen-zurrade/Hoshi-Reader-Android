@@ -49,7 +49,6 @@ import kotlinx.coroutines.withContext
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
 import moe.antimony.hoshi.LocalHoshiUiDependencies
-import moe.antimony.hoshi.R
 import moe.antimony.hoshi.content.ContentLanguageProfile
 import moe.antimony.hoshi.epub.BookEntry
 import moe.antimony.hoshi.epub.EpubBook
@@ -773,14 +772,12 @@ fun ReaderWebView(
                 if (popup == null) {
                     // The popup can disappear while the request is still in flight. Answer anyway:
                     // the popup awaits this reply and would otherwise show nothing at all for the
-                    // whole timeout window.
+                    // whole timeout window. Leaving the message empty makes the popup fall back to
+                    // its own localized error label.
                     replyReaderPopupMessage(
                         message.popupId,
                         messageId,
-                        AiGrammarPopupReply(
-                            ok = false,
-                            message = context.getString(R.string.ai_grammar_error_generic),
-                        ).toJson(),
+                        AiGrammarPopupReply(ok = false).toJson(),
                     )
                     return
                 }

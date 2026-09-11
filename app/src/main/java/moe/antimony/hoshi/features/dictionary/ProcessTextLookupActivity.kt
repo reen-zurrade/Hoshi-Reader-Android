@@ -37,7 +37,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import moe.antimony.hoshi.ProcessTextLookupRequest
 import moe.antimony.hoshi.MainActivity
-import moe.antimony.hoshi.R
 import moe.antimony.hoshi.content.ContentLanguageProfile
 import moe.antimony.hoshi.dictionary.DictionaryRepository
 import moe.antimony.hoshi.features.ai.AiGrammarOutcome
@@ -396,14 +395,13 @@ private fun ProcessTextLookupOverlay(
                     val messageId = message.messageId ?: return
                     val popup = popupById(message.popupId)
                     if (popup == null) {
-                        // Answer even when the popup is gone: the iframe awaits this reply.
+                        // Answer even when the popup is gone: the iframe awaits this reply. Leaving
+                        // the message empty makes the popup fall back to its own localized error
+                        // label, which also keeps resource lookups out of this Compose scope.
                         replyIframeMessage(
                             message.popupId,
                             messageId,
-                            AiGrammarPopupReply(
-                                ok = false,
-                                message = context.getString(R.string.ai_grammar_error_generic),
-                            ).toJson(),
+                            AiGrammarPopupReply(ok = false).toJson(),
                         )
                         return
                     }
