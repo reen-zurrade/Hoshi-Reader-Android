@@ -1,6 +1,8 @@
 package moe.antimony.hoshi.features.reader
 
 import android.annotation.SuppressLint
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Context
 import android.graphics.Color as AndroidColor
 import android.graphics.Rect
@@ -705,6 +707,17 @@ private class HoshiReaderWebView(context: Context) : WebView(context) {
         }
     }
 
+    fun copyNativeSelectionToClipboard(mode: ActionMode) {
+        evaluateJavascript("window.getSelection().toString()") { result ->
+            val text = readerJavaScriptStringResult(result)
+            if (text.isNotBlank()) {
+                context.getSystemService(ClipboardManager::class.java)
+                    ?.setPrimaryClip(ClipData.newPlainText(context.getString(R.string.app_name), text))
+            }
+            mode.finish()
+        }
+    }
+
     private fun dismissHighlightColorPopup() {
         highlightColorPopup?.dismiss()
         highlightColorPopup = null
@@ -728,21 +741,30 @@ private class ReaderHighlightActionModeCallback(
     private val delegate: ActionMode.Callback,
 ) : ActionMode.Callback2() {
     override fun onCreateActionMode(mode: ActionMode, menu: Menu): Boolean {
-        addHighlightMenu(menu)
+        addAppItems(menu)
         val created = delegate.onCreateActionMode(mode, menu)
         if (created) {
             webView.setNativeSelectionActionMode(mode)
-            addHighlightMenu(menu)
+            addAppItems(menu)
+            hidePlatformItems(menu)
         }
         return created
     }
 
     override fun onPrepareActionMode(mode: ActionMode, menu: Menu): Boolean {
-        addHighlightMenu(menu)
-        return delegate.onPrepareActionMode(mode, menu)
+        addAppItems(menu)
+        delegate.onPrepareActionMode(mode, menu)
+        hidePlatformItems(menu)
+        // The toolbar now always differs from what the platform prepared, so report a change even
+        // when the delegate reported none of its own.
+        return true
     }
 
     override fun onActionItemClicked(mode: ActionMode, item: MenuItem): Boolean {
+        if (item.itemId == ReaderSelectionActionMenu.copyItemId) {
+            webView.copyNativeSelectionToClipboard(mode)
+            return true
+        }
         if (item.itemId == ReaderHighlightSelectionMenu.parentItemId) {
             webView.prepareHighlightColorPicker(mode)
             return true
@@ -769,6 +791,11 @@ private class ReaderHighlightActionModeCallback(
         webView.setNativeSelectionContentRect(outRect)
     }
 
+    private fun addAppItems(menu: Menu) {
+        addHighlightMenu(menu)
+        addCopyMenu(menu)
+    }
+
     private fun addHighlightMenu(menu: Menu) {
         if (menu.findItem(ReaderHighlightSelectionMenu.parentItemId) != null) return
         ReaderHighlightSelectionMenu.actionModeItems.forEach { item ->
@@ -778,6 +805,25 @@ private class ReaderHighlightActionModeCallback(
                 item.order,
                 webView.context.getString(R.string.reader_highlight_action),
             ).setShowAsAction(item.showAsAction)
+        }
+    }
+
+    private fun addCopyMenu(menu: Menu) {
+        ReaderSelectionActionMenu.actionModeItems.forEach { item ->
+            if (menu.findItem(item.id) != null) return@forEach
+            menu.add(
+                ReaderSelectionActionMenu.groupId,
+                item.id,
+                item.order,
+                webView.context.getString(R.string.action_copy),
+            ).setShowAsAction(item.showAsAction)
+        }
+    }
+
+    private fun hidePlatformItems(menu: Menu) {
+        val existingItemIds = (0 until menu.size()).map { menu.getItem(it).itemId }
+        ReaderSelectionActionMenu.platformActionModeItemsToHide(existingItemIds).forEach { itemId ->
+            menu.findItem(itemId)?.isVisible = false
         }
     }
 }
