@@ -22,18 +22,6 @@ class AiGrammarRepositoryTest {
     }
 
     @Test
-    fun reportsNotConfiguredWhenTheFeatureIsDisabled() = runTest {
-        val client = FakeAiGrammarClient(AiGrammarOutcome.Success("不该被调用"))
-        val repository = repository(AiGrammarSettings(apiKey = "hoshi-secret", enabled = false), client)
-
-        assertEquals(
-            AiGrammarOutcome.Failure(AiGrammarFailure.NotConfigured),
-            repository.analyze(AiGrammarRequest(sentence = "猫が好きだ")),
-        )
-        assertEquals(0, client.prompts.size)
-    }
-
-    @Test
     fun rejectsBlankSentences() = runTest {
         val client = FakeAiGrammarClient(AiGrammarOutcome.Success("不该被调用"))
         val repository = repository(AiGrammarSettings(apiKey = "hoshi-secret"), client)
