@@ -259,7 +259,6 @@ fun ReaderWebView(
         effectiveSettings.eInkMode,
         audioSettings,
         ankiUiState.popupSettings,
-        aiGrammarLabels,
         fontManager,
         fontLibraryState.revision,
         effectiveSettings.popupScale,

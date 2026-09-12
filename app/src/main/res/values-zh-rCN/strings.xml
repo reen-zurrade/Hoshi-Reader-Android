@@ -779,8 +779,7 @@
     <string name="book_cover_scale_fill_summary">保持原始比例填满屏幕，并裁切超出的部分。</string>
     <string name="book_cover_scale_stretch">拉伸</string>
     <string name="book_cover_scale_stretch_summary">不保持封面原始比例，直接填满屏幕。</string>
-    <string name="ai_grammar_enable">在查词弹窗中显示解析按钮</string>
-    <string name="ai_grammar_status_ready">已就绪：点查词弹窗里的星形按钮即可解析整句。</string>
+    <string name="ai_grammar_status_ready">已就绪：长按选中文本，点「AI 文法解析」即可解析整句。</string>
     <string name="ai_grammar_status_missing_key">填入 DeepSeek API 密钥后即可开始解析句子。</string>
     <string name="ai_grammar_api_key">API 密钥</string>
     <string name="ai_grammar_base_url">接口地址</string>

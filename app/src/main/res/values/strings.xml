@@ -781,8 +781,7 @@
     <string name="book_cover_scale_fill_summary">Fill the screen while preserving proportions, cropping overflow.</string>
     <string name="book_cover_scale_stretch">Stretch</string>
     <string name="book_cover_scale_stretch_summary">Fill the screen without preserving the cover’s proportions.</string>
-    <string name="ai_grammar_enable">Show analysis action in lookup popup</string>
-    <string name="ai_grammar_status_ready">Ready. Tap the star in a lookup popup to analyze the whole sentence.</string>
+    <string name="ai_grammar_status_ready">Ready. Long-press to select text, then tap AI grammar analysis.</string>
     <string name="ai_grammar_status_missing_key">Add a DeepSeek API key to start analyzing sentences.</string>
     <string name="ai_grammar_api_key">API key</string>
     <string name="ai_grammar_base_url">Endpoint</string>

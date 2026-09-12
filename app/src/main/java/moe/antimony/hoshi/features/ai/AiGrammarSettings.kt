@@ -18,7 +18,6 @@ import kotlinx.coroutines.flow.map
  * The feature is bring-your-own-key: nothing is sent anywhere until [apiKey] is set.
  */
 data class AiGrammarSettings(
-    val enabled: Boolean = true,
     val apiKey: String = "",
     val baseUrl: String = DEFAULT_AI_GRAMMAR_BASE_URL,
     val model: String = DEFAULT_AI_GRAMMAR_MODEL,
@@ -27,9 +26,9 @@ data class AiGrammarSettings(
     val timeoutSeconds: Int = DEFAULT_AI_GRAMMAR_TIMEOUT_SECONDS,
     val thinkingEnabled: Boolean = false,
 ) {
-    /** The popup only offers the action once a key exists and the feature is switched on. */
+    /** Grammar analysis is offered once a key exists. There is no separate on/off switch. */
     val isConfigured: Boolean
-        get() = enabled && apiKey.isNotBlank()
+        get() = apiKey.isNotBlank()
 
     val chatCompletionsUrl: String
         get() = baseUrl.trim().trimEnd('/') + "/chat/completions"
@@ -73,7 +72,6 @@ class DataStoreAiGrammarSettingsRepository(
     override suspend fun update(transform: (AiGrammarSettings) -> AiGrammarSettings) {
         dataStore.edit { preferences ->
             val next = transform(preferences.toAiGrammarSettings())
-            preferences[KEY_ENABLED] = next.enabled
             preferences[KEY_API_KEY] = next.apiKey
             preferences[KEY_BASE_URL] = next.baseUrl
             preferences[KEY_MODEL] = next.model
@@ -85,7 +83,6 @@ class DataStoreAiGrammarSettingsRepository(
     }
 
     private fun Preferences.toAiGrammarSettings(): AiGrammarSettings = AiGrammarSettings(
-        enabled = this[KEY_ENABLED] ?: true,
         apiKey = this[KEY_API_KEY].orEmpty(),
         baseUrl = this[KEY_BASE_URL] ?: DEFAULT_AI_GRAMMAR_BASE_URL,
         model = this[KEY_MODEL] ?: DEFAULT_AI_GRAMMAR_MODEL,
@@ -96,7 +93,6 @@ class DataStoreAiGrammarSettingsRepository(
     )
 
     private companion object {
-        val KEY_ENABLED = booleanPreferencesKey("aiGrammarEnabled")
         val KEY_API_KEY = stringPreferencesKey("aiGrammarApiKey")
         val KEY_BASE_URL = stringPreferencesKey("aiGrammarBaseUrl")
         val KEY_MODEL = stringPreferencesKey("aiGrammarModel")

@@ -73,16 +73,6 @@ fun AiGrammarView(
             contentPadding = PaddingValues(16.dp),
         ) {
             item {
-                AiGrammarCard {
-                    AiGrammarSwitchRow(
-                        label = stringResource(R.string.ai_grammar_enable),
-                        checked = settings.enabled,
-                        onCheckedChange = viewModel::updateEnabled,
-                    )
-                }
-            }
-
-            item {
                 Text(
                     text = if (settings.isConfigured) {
                         stringResource(R.string.ai_grammar_status_ready)

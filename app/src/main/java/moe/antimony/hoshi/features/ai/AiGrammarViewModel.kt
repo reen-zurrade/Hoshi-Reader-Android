@@ -177,8 +177,6 @@ internal class AiGrammarViewModel @Inject constructor(
         }
     }
 
-    fun updateEnabled(value: Boolean) = updateSettings { it.copy(enabled = value) }
-
     fun updateApiKey(value: String) = updateSettings { it.copy(apiKey = value.trim()) }
 
     fun updateBaseUrl(value: String) = updateSettings {
